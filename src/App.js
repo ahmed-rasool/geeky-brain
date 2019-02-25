@@ -1,6 +1,9 @@
 import React, { Component } from 'react';
 import './App.css';
 import Navigation from './components/Navigation/Navigation';
+import SignIn from './components/SignIn/SignIn';
+import SignUp from './components/SignUp/SignUp';
+import ForgotPassword from './components/ForgotPassword/ForgotPassword';
 import Logo from './components/Logo/Logo';
 import Rank from './components/Rank/Rank';
 import InputForm from './components/InputForm/InputForm';
@@ -132,7 +135,9 @@ class App extends Component {
       input: '',
       imageUrl: '',
       message: {},
-      box: {}
+      box: {},
+      route: 'signIn',
+      userSignedIn: false
     }
   }
 
@@ -195,19 +200,69 @@ class App extends Component {
     this.setState({box: inputCoords})
   }
   
+  settingStateRoute = (inputRoute) => {
+    this.setState({route: inputRoute})
+  }
+
   render() {
-    return (
-      <div className="App">
-        <Particles className='part-bg' params={particleOptions} />
-        <Navigation />
-        <Logo />
-        <Rank />
-        <InputForm onInputUrl={this.onInputUrl} onButtonClick={this.onButtonClick} />
-        <Message message={this.state.message} />
-        <FaceImage imageUrl={this.state.imageUrl} faceBox={this.state.box} />
-        <Footer />
-      </div>
-    );
+    const { imageUrl, box, userSignedIn, route, message } = this.state;
+
+    if(route === 'signIn') {
+      return (
+        <div className="App">
+          <Particles className='part-bg' params={particleOptions} />
+          <Navigation />
+          <Logo />
+          <SignIn changeRoute={this.settingStateRoute} />
+          <Footer />
+        </div>
+      );
+    } else if(route === 'signUp') {
+      return (
+        <div className="App">
+          <Particles className='part-bg' params={particleOptions} />
+          <Navigation />
+          <Logo />
+          <SignUp changeRoute={this.settingStateRoute} />
+          <Footer />
+        </div>
+      );
+    } else if(route === 'forgotPass') {
+      return (
+        <div className="App">
+          <Particles className='part-bg' params={particleOptions} />
+          <Navigation />
+          <Logo />
+          <ForgotPassword changeRoute={this.settingStateRoute} />
+          <Footer />
+        </div>
+      );
+    } else if(route === 'home') {
+      return (
+        <div className="App">
+          <Particles className='part-bg' params={particleOptions} />
+          <Navigation changeRoute={this.settingStateRoute} />
+          <Logo />
+          <Rank />
+          <InputForm onInputUrl={this.onInputUrl} onButtonClick={this.onButtonClick} />
+          <Message message={message} />
+          <FaceImage imageUrl={imageUrl} faceBox={box} />
+          <Footer />
+        </div>
+      );
+    } else {
+      return (
+        <div className="App">
+          <Particles className='part-bg' params={particleOptions} />
+          <Navigation />
+          <div className='mt3 mb3'>
+              <p className='f1'>404</p>
+              <img className='' src="https://img.icons8.com/windows/90/000000/sad-cloud.png" alt='' />
+              <p className='f1'>PAGE NOT FOUND</p>
+          </div>
+        </div>
+      );
+    }
   }
 }
 

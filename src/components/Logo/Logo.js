@@ -5,7 +5,7 @@ import logo from './logo.png';
 
 const Logo = () => {
     return(
-        <div className='ma4 mt0'>
+        <div className='mb1'>
             <Tilt className="Tilt shadow-2 center" options={{ max : 35 }} style={{ height: 150, width: 150 }} >
                 <div className="Tilt-inner">
                     <img className='pt3' src={logo} alt="" />

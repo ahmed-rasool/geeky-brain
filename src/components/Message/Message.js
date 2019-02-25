@@ -11,7 +11,7 @@ const Message = ({ message }) => {
     return(
         <div className='mt3 mb3'>
               <p className={`f2 ${toggleDoNotDisplay}`}>ERROR {statusCode}</p>
-              <img className={toggleDoNotDisplay} src="https://img.icons8.com/windows/90/000000/sad-cloud.png" />
+              <img className={toggleDoNotDisplay} src="https://img.icons8.com/windows/90/000000/sad-cloud.png" alt='' />
               <p className={`f3 ${toggleDoNotDisplay}`}>{statusText}</p>
         </div>
     );
