@@ -11,12 +11,9 @@ import Message from './components/Message/Message';
 import FaceImage from './components/FaceImage/FaceImage';
 import Footer from './components/Footer/Footer';
 import Particles from 'react-particles-js';
-import Clarifai from 'clarifai';
 
-const app = new Clarifai.App({
-  apiKey: '33d93ac7511547fe97c00979985dd275'
- });
 
+//  react-particles-js settings parameters
 const particleOptions = {
   particles: {
   number: {
@@ -128,142 +125,208 @@ const particleOptions = {
   retina_detect: true
   }
 
+// initial State which provides the starting point for the App
+const initialState = {
+  input: '',
+  imageUrl: '',
+  message: {},
+  box: {},
+  route: 'signIn',
+  isUserSignedIn: false,
+  currentUser: {
+    id: '',
+    name: '',
+    email: '',
+    entries: 0,
+    joined: ''
+  }
+}
+  
 class App extends Component {
   constructor() {
     super();
-    this.state = {
-      input: '',
-      imageUrl: '',
-      message: {},
-      box: {},
-      route: 'signIn',
-      userSignedIn: false
-    }
+    this.state = initialState;
   }
 
-  onInputUrl = (event) => {
-    this.setState({input: event.target.value});
-  }
-  
-  onButtonClick = () => {
-    this.setState({imageUrl: this.state.input});
-    app.models
-      .predict(Clarifai.FACE_DETECT_MODEL, this.state.input)
-      .then(response => {
-        this.settingStateBox(this.calculateFaceBoxLoc(response))
-        this.settingStateMessage(this.okStatus(response))
+// This function sets the 'user' state with data
+settingStateCurrentUser = (userData) => {
+  this.setState({
+    currentUser: {
+      id: userData.id,
+      name: userData.name,
+      email: userData.email,
+      entries: userData.entries,
+      joined: userData.joined
+    }
+  })
+}
+
+// // This function is callled by settingStateMessage() inside onImageSubmit() and it
+// // returns the output if the response from the clarifai api is OK
+// okStatus = (okResp) => {
+//   const okMessage = {
+//     statusCode: okResp.status.code,
+//     statusDescription: okResp.status.description
+//   }
+//   return okMessage;
+// }
+
+// This function is callled by settingStateMessage() inside onImageSubmit() and it
+// returns the output if the response from the clarifai api is an error
+// errStatus = (errorResp) => {
+//   const errMessage = {
+//     statusCode: errorResp.status,
+//     statusText: errorResp.statusText,
+//     errorCode: errorResp.data.status.code,
+//     errorDesciption: errorResp.data.status.description
+//   }
+//   return errMessage;
+// }
+
+// This function sets the 'message' state  
+settingStateMessage = (inputRespMessage) => {
+  this.setState({message: inputRespMessage})
+}
+
+// This function sets the 'input' state
+settingStateInput = (event) => {
+  this.setState({input: event.target.value});
+}
+
+// Sending PUT request to update the entries in the database
+updateEntries = async () => {
+  const request = await fetch('http://localhost:3001/image', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      id: this.state.currentUser.id
+    })
+  })
+  const response  = await request.json();
+  this.setState(Object.assign(this.state.currentUser, {entries: response}))
+}
+
+// Requesting Clarifai API and storing response
+apiResponse = async (inputURL) => {
+  try {
+    const callingAPI = await fetch('http://localhost:3001/imageUrl', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        imageUrl: inputURL
       })
-      .catch(response => this.settingStateMessage(this.errStatus(response)));
-  }
+    })
+    const response = await callingAPI.json();
+    return response;
 
-  okStatus = (okResp) => {
-    const okMessage = {
-      statusCode: okResp.status.code,
-      statusDescription: okResp.status.description
-    }
-    return okMessage;
-  }
-
-  errStatus = (errorResp) => {
-    const errMessage = {
-      statusCode: errorResp.status,
-      statusText: errorResp.statusText,
-      errorCode: errorResp.data.status.code,
-      errorDesciption: errorResp.data.status.description
-    }
-    return errMessage;
-  }
-
-  settingStateMessage = (inputRespMessage) => {
-    this.setState({message: inputRespMessage})
-  }
-
-  calculateFaceBoxLoc = (input) => {
-    const clarifaiResp = input.outputs[0].data.regions[0].region_info.bounding_box;
+  } catch (err) {
     
-    // Fetching image with its id and calculating image width and height
-    const resultImage = document.getElementById('result-Image');
-    const resultImageWidth = Number(resultImage.width);
-    const resultImageHeight = Number(resultImage.height);
-    
-    // Creating object filling objects
-    const coords = {
-      toprow: clarifaiResp.top_row * resultImageHeight,
-      leftcol: clarifaiResp.left_col * resultImageWidth,
-      bottomrow: resultImageHeight - (clarifaiResp.bottom_row * resultImageHeight),
-      rightcol: resultImageWidth - (clarifaiResp.right_col * resultImageWidth)
-    };
-    return coords;
+    return err;
   }
+}
 
-  settingStateBox = (inputCoords) => {
-    this.setState({box: inputCoords})
-  }
+// This function requests the clarifai api with data and parses the response
+// Using the calculateFaceBoxLoc() nested inside settingStateBox()
+requestAPI = async (inputURL) => {
+  try {
+    this.settingStateBox(this.calculateFaceBoxLoc(await this.apiResponse(inputURL)));
+    // this.settingStateMessage(this.okStatus(apiResponse));
+    
+    // Updating entries in case of a successfull response from API
+    this.updateEntries();
+
+    } catch (err) {
+      console.log(err);
+      // this.settingStateMessage(this.errStatus(err))
+    }
+}
+
+onImageSubmit = () => {
+  this.setState({imageUrl: this.state.input});
+  this.requestAPI(this.state.input);
+}
+
+
+// This function calculates the coordinates of box around the face.
+// It takes clarifai api response as its input
+calculateFaceBoxLoc = (input) => {
+  const clarifaiResp = input.outputs[0].data.regions[0].region_info.bounding_box;
   
-  settingStateRoute = (inputRoute) => {
-    this.setState({route: inputRoute})
+  // Fetching image with its id and calculating image width and height
+  const resultImage = document.getElementById('result-Image');
+  const resultImageWidth = Number(resultImage.width);
+  const resultImageHeight = Number(resultImage.height);
+  
+  // Creating object filling objects
+  const coords = {
+    toprow: clarifaiResp.top_row * resultImageHeight,
+    leftcol: clarifaiResp.left_col * resultImageWidth,
+    bottomrow: resultImageHeight - (clarifaiResp.bottom_row * resultImageHeight),
+    rightcol: resultImageWidth - (clarifaiResp.right_col * resultImageWidth)
+  };
+  return coords;
+}
+
+// This function receives the coordinates calculated by calculateFaceBoxLoc()
+// Then it sets the 'box' state
+settingStateBox = (inputCoords) => {
+  this.setState({box: inputCoords})
+}
+
+// This function sets the initial values of different properties of this.state object
+settingStateInitial = (inputValue) => {
+  // Returning to initial state in case of SignOut
+  if (inputValue === 'signIn') {
+    this.setState(initialState); 
+  }
+}
+
+// this function determines the current status of the route
+// Then sets the 'isUserSignedIn' property of the state object
+settingStateUserSignedIn = (inputValue) => {
+  // Setting isUserSignedIn state
+  if (inputValue === 'home') {
+    this.setState({isUserSignedIn: true})
+  } else {
+    this.setState({isUserSignedIn: false})
+  }
+}
+
+// This function sets the 'route' state
+settingStateRoute = (inputRoute) => {
+  
+  if (inputRoute === 'signIn') {
+    this.setState(initialState);
   }
 
-  render() {
-    const { imageUrl, box, userSignedIn, route, message } = this.state;
+  this.settingStateUserSignedIn(inputRoute)
 
-    if(route === 'signIn') {
-      return (
-        <div className="App">
-          <Particles className='part-bg' params={particleOptions} />
-          <Navigation />
-          <Logo />
-          <SignIn changeRoute={this.settingStateRoute} />
-          <Footer />
-        </div>
-      );
-    } else if(route === 'signUp') {
-      return (
-        <div className="App">
-          <Particles className='part-bg' params={particleOptions} />
-          <Navigation />
-          <Logo />
-          <SignUp changeRoute={this.settingStateRoute} />
-          <Footer />
-        </div>
-      );
-    } else if(route === 'forgotPass') {
-      return (
-        <div className="App">
-          <Particles className='part-bg' params={particleOptions} />
-          <Navigation />
-          <Logo />
-          <ForgotPassword changeRoute={this.settingStateRoute} />
-          <Footer />
-        </div>
-      );
-    } else if(route === 'home') {
-      return (
-        <div className="App">
-          <Particles className='part-bg' params={particleOptions} />
-          <Navigation changeRoute={this.settingStateRoute} />
-          <Logo />
-          <Rank />
-          <InputForm onInputUrl={this.onInputUrl} onButtonClick={this.onButtonClick} />
-          <Message message={message} />
-          <FaceImage imageUrl={imageUrl} faceBox={box} />
-          <Footer />
-        </div>
-      );
-    } else {
-      return (
-        <div className="App">
-          <Particles className='part-bg' params={particleOptions} />
-          <Navigation />
-          <div className='mt3 mb3'>
-              <p className='f1'>404</p>
-              <img className='' src="https://img.icons8.com/windows/90/000000/sad-cloud.png" alt='' />
-              <p className='f1'>PAGE NOT FOUND</p>
-          </div>
-        </div>
-      );
-    }
-  }
+  // Setting the route state
+  this.setState({route: inputRoute})
+}
+
+render() {
+  const { imageUrl, box, isUserSignedIn, route, message, currentUser } = this.state;
+  return (
+    <div className='App'>
+      <Particles className='part-bg' params={particleOptions} />
+      <Navigation userStatus={isUserSignedIn} changeRoute={this.settingStateRoute} />
+      <Logo />
+      <SignIn settingCurrentUser={this.settingStateCurrentUser} currentRoute={route} changeRoute={this.settingStateRoute} />
+      <SignUp settingCurrentUser={this.settingStateCurrentUser} currentRoute={route} changeRoute={this.settingStateRoute} />
+      <ForgotPassword currentRoute={route} changeRoute={this.settingStateRoute} />
+      <Message currentRoute={route} message={message} />
+      <Rank currentUser={currentUser} currentRoute={route} />
+      <InputForm currentRoute={route} settingStateInput={this.settingStateInput} onImageSubmit={this.onImageSubmit} />
+      <FaceImage currentRoute={route} imageUrl={imageUrl} faceBox={box} />
+      <Footer />
+    </div>
+  )
+}
 }
 
 export default App;
