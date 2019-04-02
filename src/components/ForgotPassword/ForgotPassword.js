@@ -13,7 +13,7 @@ class ForgotPassword extends React.Component {
     }
 
     onReset = async () => {
-        const request = await fetch('http://localhost:3001/forgotPass', {
+        const request = await fetch('https://geeky-brain-api.herokuapp.com/forgotPass', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

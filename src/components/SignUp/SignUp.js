@@ -23,7 +23,7 @@ class SignUp extends React.Component {
     }
 
     onRegister = () => {
-        fetch('http://localhost:3001/signUp', {
+        fetch('https://geeky-brain-api.herokuapp.com/signUp', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

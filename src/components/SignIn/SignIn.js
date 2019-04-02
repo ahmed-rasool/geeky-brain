@@ -18,7 +18,7 @@ class SignIn extends React.Component {
     }
 
     onLogIn = async () => {
-        const response = await fetch('http://localhost:3001/signIn', {
+        const response = await fetch('https://geeky-brain-api.herokuapp.com/signIn', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
