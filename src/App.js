@@ -195,7 +195,7 @@ settingStateInput = (event) => {
 
 // Sending PUT request to update the entries in the database
 updateEntries = async () => {
-  const request = await fetch('http://localhost:3001/image', {
+  const request = await fetch('https://geeky-brain-api.herokuapp.com/image', {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json'
@@ -211,7 +211,7 @@ updateEntries = async () => {
 // Requesting Clarifai API and storing response
 apiResponse = async (inputURL) => {
   try {
-    const callingAPI = await fetch('http://localhost:3001/imageUrl', {
+    const callingAPI = await fetch('https://geeky-brain-api.herokuapp.com/imageUrl', {
       method: 'POST',
       headers: {
         'content-type': 'application/json'
